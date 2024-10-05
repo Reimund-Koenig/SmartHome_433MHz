@@ -1,3 +1,5 @@
 **/*example*
 **/*build*
 **/datasheets/*
+/src/constants/secrets.h
+
