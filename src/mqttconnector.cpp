@@ -8,12 +8,8 @@ MQTTConnector::MQTTConnector(MQTT_CALLBACK_SIGNATURE) {
     if(WiFi.status() != WL_CONNECTED) { return; }
     client = new PubSubClient(espClient);
     client->setServer(MQTT_SERVER_IP_ADDRESS, MQTT_SERVER_PORT);
-    // this->client.setCallback(callback);
-    Serial.println("HERE 1");
-    delay(3000);
+    client->setCallback(callback);
     reconnect();
-    Serial.println("HERE 5");
-    delay(3000);
 };
 
 void MQTTConnector::publish_433(const char *topic, unsigned long val,
@@ -61,7 +57,7 @@ void MQTTConnector::setup_wifi() {
 
 void MQTTConnector::reconnect() {
     if(WiFi.status() != WL_CONNECTED) { return; }
-    int timeout = 10; // Seconds
+    int timeout = 10;
     while(!client->connected() && timeout > 0) {
         String clientId = "ESP8266Client-";
         clientId += String(random(0xffff), HEX);
@@ -72,12 +68,9 @@ void MQTTConnector::reconnect() {
         } else {
             Serial.print("Fehler, rc=");
             Serial.print(client->state());
-            Serial.println(" Wait 5 seconds and try again");
-            delay(5000);
+            Serial.println(" Wait 1 seconds and try again");
+            delay(1000);
         }
         timeout--;
-        delay(5000);
     }
-    Serial.println("HERE 4");
-    delay(3000);
 }

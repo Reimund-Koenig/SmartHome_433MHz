@@ -32,10 +32,12 @@ void setup() {
     mqtt = new MQTTConnector(mqtt_callback);
     pinMode(REICEIVER_DATA, INPUT);
     pinMode(TRANSMITTER_DATA, OUTPUT);
+    pinMode(MODULE_POWER, OUTPUT);
     pinMode(REICEIVER_SLEEP, OUTPUT);
     receiver.enableReceive(REICEIVER_DATA);       // 433MHz Receiver
     transmitter.enableTransmit(TRANSMITTER_DATA); // 433MHz Sender
     Serial.println("Sniffer and sender for RF 433MHz");
+    digitalWrite(MODULE_POWER, HIGH);
     digitalWrite(REICEIVER_SLEEP, HIGH);
 }
 
