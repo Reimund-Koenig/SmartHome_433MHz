@@ -1,0 +1,41 @@
+{
+  "files.associations": {
+    "system_error": "cpp",
+    "*.tcc": "cpp",
+    "fstream": "cpp",
+    "array": "cpp",
+    "deque": "cpp",
+    "string": "cpp",
+    "unordered_map": "cpp",
+    "vector": "cpp",
+    "string_view": "cpp",
+    "initializer_list": "cpp",
+    "optional": "cpp",
+    "istream": "cpp",
+    "ostream": "cpp",
+    "functional": "cpp",
+    "regex": "cpp",
+    "tuple": "cpp",
+    "type_traits": "cpp",
+    "utility": "cpp",
+    "random": "cpp",
+    "list": "cpp",
+    "ranges": "cpp"
+  },
+  "cSpell.words": [
+    "Adafruit",
+    "Clocktime",
+    "Doubleblink",
+    "LAMPHELPER",
+    "lightgreen",
+    "MDNS",
+    "Nachtlicht",
+    "NEOPIXEL",
+    "neopixels",
+    "prescale",
+    "SLEEPTIME",
+    "SSID",
+    "substate",
+    "timeinfo"
+  ]
+}

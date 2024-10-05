@@ -1,0 +1,18 @@
+IndentWidth: 4
+SpaceBeforeParens: Never
+AllowShortBlocksOnASingleLine: true
+AllowShortIfStatementsOnASingleLine: true
+
+BraceWrapping:
+  AfterClass: false
+  AfterControlStatement: false
+  AfterEnum: false
+  AfterFunction: false
+  AfterNamespace: false
+  AfterObjCDeclaration: false
+  AfterStruct: false
+  AfterUnion: false
+  BeforeCatch: false
+  BeforeElse: false
+  IndentBraces: false
+BreakBeforeBraces: Custom
