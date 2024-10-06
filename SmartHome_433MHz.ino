@@ -6,6 +6,7 @@ RCSwitch receiver = RCSwitch();
 RCSwitch transmitter = RCSwitch();
 uint32_t seconds;
 uint32_t last_seconds;
+unsigned long learning_code;
 
 WiFiClient espClient;
 PubSubClient client(espClient);
@@ -18,15 +19,17 @@ struct Codes {
 
 Codes *codes = NULL;
 int numOfCodes = 0;
+
 void mqtt_callback(char *topic, byte *payload, unsigned int length) {
-    Serial.print("New Message: [");
-    Serial.print(topic);
-    Serial.print("] ");
+    String message = "";
     for(int i = 0; i < length; i++) {
-        Serial.print((char)payload[i]);
+        char tmp = (char)payload[i];
+        if(!isDigit(tmp)) { return; } // No integer
+        message += tmp;
     }
-    Serial.println();
+    learning_code = strtoul(message.c_str(), NULL, 10);
 }
+
 void setup() {
     Serial.begin(115200);
     mqtt = new MQTTConnector(mqtt_callback);
@@ -73,6 +76,19 @@ void resend_known_codes() {
     }
 }
 
+void check_learning() {
+    if(learning_code == 0) { return; }
+    Serial.print("Start Learning Mode with Code: ");
+    Serial.println(learning_code);
+    for(int k = 0; k < 10; k++) {
+        Serial.println("Send Learning Code");
+        transmitter.send(learning_code, 24);
+        delay(10);
+    }
+    Serial.print("Finished Learning Mode with Code: ");
+    learning_code = 0;
+}
+
 void tick() {
     if(seconds != last_seconds) {
         Serial.println(seconds);
@@ -98,5 +114,6 @@ void tick() {
 void loop() {
     seconds = (int)(millis() / 1000);
     tick();
+    check_learning();
     mqtt->loop();
 }
