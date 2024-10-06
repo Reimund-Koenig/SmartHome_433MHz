@@ -64,7 +64,7 @@ void MQTTConnector::reconnect() {
         Serial.println("Connect to MQTT...");
         if(client->connect(clientId.c_str())) {
             Serial.println("connected");
-            client->subscribe("home/433/commands");
+            client->subscribe("home/433/learning");
         } else {
             Serial.print("Fehler, rc=");
             Serial.print(client->state());
