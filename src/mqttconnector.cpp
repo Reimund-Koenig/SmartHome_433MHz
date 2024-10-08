@@ -34,9 +34,9 @@ void MQTTConnector::subscribe(const char *topic) { client->subscribe(topic); }
 
 void MQTTConnector::setup_wifi() {
     delay(10);
-    Serial.println();
-    Serial.print("Connect to ");
-    Serial.println(ssid);
+    // Serial.println();
+    // Serial.print("Connect to ");
+    // Serial.println(ssid);
 
     WiFi.mode(WIFI_STA);
     WiFi.begin(ssid, password);
@@ -44,26 +44,26 @@ void MQTTConnector::setup_wifi() {
     while(WiFi.status() != WL_CONNECTED && timeout > 0) {
         delay(1000);
         timeout--;
-        Serial.print(".");
+        // Serial.print(".");
     }
-    Serial.println("");
-    Serial.println("WLAN connected");
-    Serial.print("IP address: ");
-    Serial.println(WiFi.localIP());
+    // Serial.println("");
+    // Serial.println("WLAN connected");
+    // Serial.print("IP address: ");
+    // Serial.println(WiFi.localIP());
 }
 
 void MQTTConnector::reconnect() {
     if(WiFi.status() != WL_CONNECTED) { return; }
     String clientId = "ESP8266Client-";
     clientId += String(random(0xffff), HEX);
-    Serial.println("Connect to MQTT...");
+    // Serial.println("Connect to MQTT...");
     if(client->connect(clientId.c_str())) {
-        Serial.println("connected");
+        // Serial.println("connected");
         client->subscribe("home/433/learning");
     } else {
-        Serial.print("Fehler, rc=");
-        Serial.print(client->state());
-        Serial.println(" Wait 5 seconds and try again");
+        // Serial.print("Fehler, rc=");
+        // Serial.print(client->state());
+        // Serial.println(" Wait 5 seconds and try again");
         delay(5000);
     }
 }
