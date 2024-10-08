@@ -12,9 +12,8 @@ MQTTConnector::MQTTConnector(MQTT_CALLBACK_SIGNATURE) {
     reconnect();
 };
 
-void MQTTConnector::publish_433(const char *topic, unsigned long val,
-                                unsigned int bitLen) {
-    std::string message = std::to_string(val) + "/" + std::to_string(bitLen);
+void MQTTConnector::publish_433(const char *topic, unsigned long val) {
+    std::string message = std::to_string(val);
     client->publish(topic, message.c_str());
 }
 
@@ -24,14 +23,12 @@ void MQTTConnector::publish(const char *topic, const char *message) {
 
 void MQTTConnector::loop() {
     if(WiFi.status() != WL_CONNECTED) { return; }
-    if(isConnected()) {
+    if(client->connected()) {
         client->loop();
     } else {
         reconnect();
     }
 }
-
-bool MQTTConnector::isConnected() { return client->connected(); }
 
 void MQTTConnector::subscribe(const char *topic) { client->subscribe(topic); }
 
@@ -57,20 +54,16 @@ void MQTTConnector::setup_wifi() {
 
 void MQTTConnector::reconnect() {
     if(WiFi.status() != WL_CONNECTED) { return; }
-    int timeout = 10;
-    while(!client->connected() && timeout > 0) {
-        String clientId = "ESP8266Client-";
-        clientId += String(random(0xffff), HEX);
-        Serial.println("Connect to MQTT...");
-        if(client->connect(clientId.c_str())) {
-            Serial.println("connected");
-            client->subscribe("home/433/learning");
-        } else {
-            Serial.print("Fehler, rc=");
-            Serial.print(client->state());
-            Serial.println(" Wait 1 seconds and try again");
-            delay(1000);
-        }
-        timeout--;
+    String clientId = "ESP8266Client-";
+    clientId += String(random(0xffff), HEX);
+    Serial.println("Connect to MQTT...");
+    if(client->connect(clientId.c_str())) {
+        Serial.println("connected");
+        client->subscribe("home/433/learning");
+    } else {
+        Serial.print("Fehler, rc=");
+        Serial.print(client->state());
+        Serial.println(" Wait 5 seconds and try again");
+        delay(5000);
     }
 }

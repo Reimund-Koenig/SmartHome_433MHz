@@ -9,7 +9,7 @@ class MQTTConnector {
   public:
     MQTTConnector(MQTT_CALLBACK_SIGNATURE);
     void publish(const char *topic, const char *message);
-    void publish_433(const char *topic, unsigned long val, unsigned int bitLen);
+    void publish_433(const char *topic, unsigned long val);
     void subscribe(const char *topic); // Subscribes to a topic
     void loop();
 
@@ -18,6 +18,5 @@ class MQTTConnector {
     PubSubClient *client;
     void setup_wifi();
     void reconnect();
-    bool isConnected();
 };
 #endif // MQTTCONNECTOR
