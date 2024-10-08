@@ -31,7 +31,7 @@ void mqtt_callback(char *topic, byte *payload, unsigned int length) {
 }
 
 void setup() {
-    Serial.begin(115200);
+    // Serial.begin(115200);
     mqtt = new MQTTConnector(mqtt_callback);
     pinMode(REICEIVER_DATA, INPUT);
     pinMode(TRANSMITTER_DATA, OUTPUT);
@@ -40,7 +40,7 @@ void setup() {
     pinMode(REICEIVER_SLEEP, OUTPUT);
     receiver.enableReceive(REICEIVER_DATA);       // 433MHz Receiver
     transmitter.enableTransmit(TRANSMITTER_DATA); // 433MHz Sender
-    Serial.println("Sniffer and sender for RF 433MHz");
+    // Serial.println("Sniffer and sender for RF 433MHz");
     digitalWrite(TRANSMITTER_POWER, HIGH);
     digitalWrite(RECEIVER_POWER, HIGH);
     digitalWrite(REICEIVER_SLEEP, HIGH);
@@ -67,47 +67,47 @@ void addToList(int code, int bitLenght) {
 
 void resend_known_codes() {
     for(int i = 0; i < numOfCodes; i++) {
-        Serial.print("Send Code: ");
-        Serial.print(codes[i].code);
-        Serial.print(" / ");
-        Serial.print(codes[i].bitLenght);
-        Serial.println("bit");
+        // Serial.print("Send Code: ");
+        // Serial.print(codes[i].code);
+        // Serial.print(" / ");
+        // Serial.print(codes[i].bitLenght);
+        // Serial.println("bit");
         transmitter.send(codes[i].code, codes[i].bitLenght);
     }
 }
 
 void check_learning() {
     if(learning_code == 0) { return; }
-    Serial.print("Start Learning Mode with Code: ");
-    Serial.println(learning_code);
+    // Serial.print("Start Learning Mode with Code: ");
+    // Serial.println(learning_code);
     for(int k = 0; k < 10; k++) {
-        Serial.println("Send Learning Code");
+        // Serial.println("Send Learning Code");
         transmitter.send(learning_code, 24);
         delay(10);
     }
-    Serial.print("Finished Learning Mode with Code: ");
+    // Serial.print("Finished Learning Mode with Code: ");
     learning_code = 0;
 }
 
 void tick() {
     if(seconds != last_seconds) {
-        Serial.println(seconds);
+        // Serial.println(seconds);
         last_seconds = seconds;
         // resend_known_codes();
     }
     if(!receiver.available()) { return; }
-    Serial.print(seconds);
+    // Serial.print(seconds);
     unsigned long tmp_code = receiver.getReceivedValue();
     unsigned int tmp_bitLenght = receiver.getReceivedBitlength();
     addToList(tmp_code, tmp_bitLenght);
-    mqtt->publish_433("home/433", tmp_code, tmp_bitLenght);
-    Serial.print("  - Received ");
-    Serial.print(tmp_code);
-    Serial.print(" / ");
-    Serial.print(tmp_bitLenght);
-    Serial.print("bit ");
-    Serial.print("Protocol: ");
-    Serial.println(receiver.getReceivedProtocol());
+    mqtt->publish_433("home/433", tmp_code);
+    // Serial.print("  - Received ");
+    // Serial.print(tmp_code);
+    // Serial.print(" / ");
+    // Serial.print(tmp_bitLenght);
+    // Serial.print("bit ");
+    // Serial.print("Protocol: ");
+    // Serial.println(receiver.getReceivedProtocol());
     receiver.resetAvailable();
 }
 
