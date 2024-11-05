@@ -54,7 +54,7 @@ void MQTTConnector::setup_wifi() {
 }
 
 void MQTTConnector::reconnect() {
-    setup_wifi;
+    setup_wifi();
     String clientId = "ESP8266Client-";
     clientId += String(random(0xffff), HEX);
     DEBUG_PRINTLN("Connect to MQTT...");
