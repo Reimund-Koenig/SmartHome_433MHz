@@ -9,7 +9,7 @@ class MQTTConnector {
   public:
     MQTTConnector(MQTT_CALLBACK_SIGNATURE);
     void publish(const char *topic, const char *message);
-    void publish_433(const char *topic, unsigned long val);
+    void publish_433(unsigned long val);
     void subscribe(const char *topic); // Subscribes to a topic
     void loop();
 

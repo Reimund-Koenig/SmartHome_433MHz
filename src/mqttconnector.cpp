@@ -1,6 +1,7 @@
 
 #include "mqttconnector.h"
 #include "constants/secrets.h" // rename and adapt secrets_template.h
+#include "logger.h"
 #include <string>
 
 MQTTConnector::MQTTConnector(MQTT_CALLBACK_SIGNATURE) {
@@ -12,7 +13,8 @@ MQTTConnector::MQTTConnector(MQTT_CALLBACK_SIGNATURE) {
     reconnect();
 };
 
-void MQTTConnector::publish_433(const char *topic, unsigned long val) {
+void MQTTConnector::publish_433(unsigned long val) {
+    const char *topic = "home/433";
     std::string message = std::to_string(val);
     client->publish(topic, message.c_str());
 }
@@ -22,7 +24,6 @@ void MQTTConnector::publish(const char *topic, const char *message) {
 }
 
 void MQTTConnector::loop() {
-    if(WiFi.status() != WL_CONNECTED) { return; }
     if(client->connected()) {
         client->loop();
     } else {
@@ -33,37 +34,37 @@ void MQTTConnector::loop() {
 void MQTTConnector::subscribe(const char *topic) { client->subscribe(topic); }
 
 void MQTTConnector::setup_wifi() {
+    if(WiFi.status() == WL_CONNECTED) return;
     delay(10);
-    // Serial.println();
-    // Serial.print("Connect to ");
-    // Serial.println(ssid);
-
+    DEBUG_PRINTLN();
+    DEBUG_PRINT("Connect to ");
+    DEBUG_PRINTLN(ssid);
     WiFi.mode(WIFI_STA);
     WiFi.begin(ssid, password);
     int timeout = 10; // Seconds
     while(WiFi.status() != WL_CONNECTED && timeout > 0) {
         delay(1000);
         timeout--;
-        // Serial.print(".");
+        DEBUG_PRINT(".");
     }
-    // Serial.println("");
-    // Serial.println("WLAN connected");
-    // Serial.print("IP address: ");
-    // Serial.println(WiFi.localIP());
+    DEBUG_PRINTLN("");
+    DEBUG_PRINTLN("WLAN connected");
+    DEBUG_PRINT("IP address: ");
+    DEBUG_PRINTLN(WiFi.localIP());
 }
 
 void MQTTConnector::reconnect() {
-    if(WiFi.status() != WL_CONNECTED) { return; }
+    setup_wifi;
     String clientId = "ESP8266Client-";
     clientId += String(random(0xffff), HEX);
-    // Serial.println("Connect to MQTT...");
+    DEBUG_PRINTLN("Connect to MQTT...");
     if(client->connect(clientId.c_str())) {
-        // Serial.println("connected");
+        DEBUG_PRINTLN("connected");
         client->subscribe("home/433/learning");
     } else {
-        // Serial.print("Fehler, rc=");
-        // Serial.print(client->state());
-        // Serial.println(" Wait 5 seconds and try again");
+        DEBUG_PRINT("Fehler, rc=");
+        DEBUG_PRINT(client->state());
+        DEBUG_PRINTLN(" Wait 5 seconds and try again");
         delay(5000);
     }
 }
