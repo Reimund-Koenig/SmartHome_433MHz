@@ -1,6 +1,9 @@
+
+// #define DEBUG
 #include "src/logger.h"
 #include "src/mqttconnector.h"
 #include <RCSwitch.h>
+
 #ifdef DEBUG
 bool serial_enabled = true;
 #else
@@ -11,7 +14,7 @@ bool serial_enabled = false;
 RCSwitch receiver = RCSwitch();
 RCSwitch transmitter = RCSwitch();
 uint32_t seconds;
-uint32_t next_tick;
+uint32_t next_heartbeat;
 unsigned long learning_code;
 
 WiFiClient espClient;
@@ -43,7 +46,7 @@ void setup() {
             delay(1);
         }
     }
-    next_tick = 0;
+    next_heartbeat = 0;
     mqtt = new MQTTConnector(mqtt_callback);
     pinMode(REICEIVER_DATA, INPUT);
     pinMode(TRANSMITTER_DATA, OUTPUT);
@@ -102,11 +105,10 @@ void check_learning() {
 }
 
 void heartbeat() {
-    seconds = (int)(millis() / 1000);
-    if(seconds < next_tick) return;
+    if(seconds < next_heartbeat) return;
     mqtt->publish("home/433/heartbeat", "alive");
     DEBUG_PRINTLN(seconds);
-    next_tick = seconds + 5;
+    next_heartbeat = seconds + 30;
 }
 
 void check_receiver() {
@@ -131,6 +133,7 @@ void check_receiver() {
 }
 
 void loop() {
+    seconds = (int)(millis() / 1000);
     heartbeat();
     check_receiver();
     check_learning();
