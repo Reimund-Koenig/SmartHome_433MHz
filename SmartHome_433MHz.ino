@@ -16,6 +16,8 @@ RCSwitch transmitter = RCSwitch();
 uint32_t seconds;
 uint32_t next_heartbeat;
 unsigned long learning_code;
+unsigned long next_mqtt;
+unsigned long next_receiver;
 
 WiFiClient espClient;
 PubSubClient client(espClient);
@@ -48,6 +50,8 @@ void setup() {
     }
     next_heartbeat = 0;
     mqtt = new MQTTConnector(mqtt_callback);
+    next_mqtt = 0;
+    next_receiver = 0;
     pinMode(REICEIVER_DATA, INPUT);
     pinMode(TRANSMITTER_DATA, OUTPUT);
     pinMode(TRANSMITTER_POWER, OUTPUT);
@@ -112,24 +116,23 @@ void heartbeat() {
 }
 
 void check_receiver() {
+    if(millis() < next_receiver) return;
+    next_receiver = millis() + 10;
     if(!receiver.available()) { return; }
+    next_receiver = millis() + 1000;
     DEBUG_PRINT(seconds);
     unsigned long tmp_code = receiver.getReceivedValue();
     unsigned int tmp_bitLenght = receiver.getReceivedBitlength();
     unsigned int protocol = receiver.getReceivedProtocol();
-    DEBUG_PRINT(" - Received: ");
-    DEBUG_PRINT(tmp_code);
-    DEBUG_PRINT(" / ");
-    DEBUG_PRINT(tmp_bitLenght);
-    DEBUG_PRINT("bit - ");
-    DEBUG_PRINT("Protocol: ");
-    DEBUG_PRINT(protocol);
-    DEBUG_PRINT(" - Add to List - ");
     addToList(tmp_code, tmp_bitLenght);
-    DEBUG_PRINT("MQTT Publish - ");
     mqtt->publish_433(tmp_code);
-    DEBUG_PRINTLN(" - resetAvailable");
     receiver.resetAvailable();
+}
+
+void handle_mqtt() {
+    if(millis() < next_mqtt) return;
+    mqtt->loop();
+    next_mqtt += millis() + 10;
 }
 
 void loop() {
@@ -137,6 +140,6 @@ void loop() {
     heartbeat();
     check_receiver();
     check_learning();
-    mqtt->loop();
-    delay(10);
+    handle_mqtt();
+    delay(2);
 }
