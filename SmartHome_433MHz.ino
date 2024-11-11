@@ -44,7 +44,7 @@ void mqtt_callback(char *topic, byte *payload, unsigned int length) {
         // Payload auf "restart" prüfen
         if(message == "restart") {
             mqtt->publish(
-                "home/433/state",
+                "/state",
                 "Neustart-Befehl erhalten. ESP32 wird neu gestartet...");
             delay(1000); // kurze Verzögerung, damit die Nachricht noch gesendet
                          // werden kann
@@ -131,7 +131,7 @@ void check_learning() {
 
 void heartbeat() {
     if(seconds < next_heartbeat) return;
-    mqtt->publish("home/433/heartbeat", "alive");
+    mqtt->publish("/heartbeat", "alive");
     DEBUG_LOGLN(seconds);
     next_heartbeat = seconds + 30;
 }
