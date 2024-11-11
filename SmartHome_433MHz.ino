@@ -13,8 +13,8 @@ bool serial_enabled = false;
 
 RCSwitch receiver = RCSwitch();
 RCSwitch transmitter = RCSwitch();
-uint32_t seconds;
-uint32_t next_heartbeat;
+unsigned long seconds;
+unsigned long next_heartbeat;
 unsigned long learning_code;
 unsigned long next_handle;
 int trigger_restart;
@@ -165,7 +165,7 @@ void handle_restart() {
 
 void handler() {
     if(millis() < next_handle) return;
-    seconds = (int)(millis() / 1000);
+    seconds = (unsigned long)(millis() / 1000);
     handle_mqtt();
     handle_heartbeat();
     handle_restart();
