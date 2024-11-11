@@ -67,7 +67,7 @@ void setup() {
             delay(1);
         }
     }
-    mqtt = new MQTTConnector(mqtt_callback);
+    mqtt = new MQTTConnector(mqtt_callback, "home/433");
     cfs = new ControllerFileSystem();
     controller_updater = new ControllerFota(cfs, mqtt);
     next_heartbeat = 0;
@@ -83,7 +83,7 @@ void setup() {
     digitalWrite(TRANSMITTER_POWER, HIGH);
     digitalWrite(RECEIVER_POWER, HIGH);
     digitalWrite(REICEIVER_SLEEP, HIGH);
-    DEBUG_PRINTLN("Sniffer and sender for RF 433MHz");
+    DEBUG_LOGLN("Sniffer and sender for RF 433MHz");
 }
 
 bool isInList(int code, int bitLenght) {
@@ -107,32 +107,32 @@ void addToList(int code, int bitLenght) {
 
 void resend_known_codes() {
     for(int i = 0; i < numOfCodes; i++) {
-        DEBUG_PRINT("Send Code: ");
-        DEBUG_PRINT(codes[i].code);
-        DEBUG_PRINT(" / ");
-        DEBUG_PRINT(codes[i].bitLenght);
-        DEBUG_PRINTLN("bit");
+        DEBUG_LOG("Send Code: ");
+        DEBUG_LOG(codes[i].code);
+        DEBUG_LOG(" / ");
+        DEBUG_LOG(codes[i].bitLenght);
+        DEBUG_LOGLN("bit");
         transmitter.send(codes[i].code, codes[i].bitLenght);
     }
 }
 
 void check_learning() {
     if(learning_code == 0) { return; }
-    DEBUG_PRINT("Start Learning Mode with Code: ");
-    DEBUG_PRINTLN(learning_code);
+    DEBUG_LOG("Start Learning Mode with Code: ");
+    DEBUG_LOGLN(learning_code);
     for(int k = 0; k < 10; k++) {
-        DEBUG_PRINTLN("Send Learning Code");
+        DEBUG_LOGLN("Send Learning Code");
         transmitter.send(learning_code, 24);
         delay(10);
     }
-    DEBUG_PRINT("Finished Learning Mode with Code: ");
+    DEBUG_LOG("Finished Learning Mode with Code: ");
     learning_code = 0;
 }
 
 void heartbeat() {
     if(seconds < next_heartbeat) return;
     mqtt->publish("home/433/heartbeat", "alive");
-    DEBUG_PRINTLN(seconds);
+    DEBUG_LOGLN(seconds);
     next_heartbeat = seconds + 30;
 }
 
@@ -141,12 +141,12 @@ void check_receiver() {
     next_receiver = millis() + 10;
     if(!receiver.available()) { return; }
     next_receiver = millis() + 1000;
-    DEBUG_PRINT(seconds);
+    DEBUG_LOG(seconds);
     unsigned long tmp_code = receiver.getReceivedValue();
     unsigned int tmp_bitLenght = receiver.getReceivedBitlength();
     unsigned int protocol = receiver.getReceivedProtocol();
     addToList(tmp_code, tmp_bitLenght);
-    mqtt->publish_433(tmp_code);
+    mqtt->publish(tmp_code);
     receiver.resetAvailable();
 }
 
