@@ -16,7 +16,8 @@ RCSwitch transmitter = RCSwitch();
 uint32_t seconds;
 uint32_t next_heartbeat;
 unsigned long learning_code;
-unsigned long next_mqtt;
+unsigned long next_handle;
+int trigger_restart;
 unsigned long next_receiver;
 
 WiFiClient espClient;
@@ -39,16 +40,6 @@ Codes *codes = NULL;
 std::vector<MQTTMessage> mqttMessages;
 
 int numOfCodes = 0;
-
-void mqtt_callback(char *topic, byte *payload, unsigned int length) {
-    String topicStr = String(topic);
-    String messageStr;
-    for(unsigned int i = 0; i < length; i++) {
-        messageStr += (char)payload[i];
-    }
-    mqttMessages.push_back({topicStr, messageStr});
-}
-
 void setup() {
     if(serial_enabled) {
         Serial.begin(19200);
@@ -61,8 +52,9 @@ void setup() {
     cfs = new ControllerFileSystem();
     controller_updater = new ControllerFota(cfs, mqtt);
     next_heartbeat = 0;
-    next_mqtt = 0;
+    next_handle = 0;
     next_receiver = 0;
+    trigger_restart = 0;
     pinMode(REICEIVER_DATA, INPUT);
     pinMode(TRANSMITTER_DATA, OUTPUT);
     pinMode(TRANSMITTER_POWER, OUTPUT);
@@ -114,12 +106,6 @@ void check_learning() {
     learning_code = 0;
 }
 
-void heartbeat() {
-    if(seconds < next_heartbeat) return;
-    mqtt->publish("/heartbeat", "alive");
-    next_heartbeat = seconds + 30;
-}
-
 void check_receiver() {
     if(millis() < next_receiver) return;
     next_receiver = millis() + 10;
@@ -133,15 +119,22 @@ void check_receiver() {
     receiver.resetAvailable();
 }
 
-void handleMqttInput(String topic, String msg) {
-    if(topic == "home/433/command") {
-        if(msg == "restart") {
-            mqtt->publish("/state", "ESP32 wird neu gestartet...");
-            DEBUG_LOGLN("NEUSTART");
-            delay(1000);
-            ESP.restart();
-        }
-    } else if(topic == "home/433") {
+void mqtt_callback(char *topic, byte *payload, unsigned int length) {
+    String topicStr = String(topic);
+    String messageStr;
+    for(unsigned int i = 0; i < length; i++) {
+        messageStr += (char)payload[i];
+    }
+    mqttMessages.push_back({topicStr, messageStr});
+}
+
+void handle_mqtt_input(String topic, String msg) {
+    if(topic != "home/433/command") { return; }
+    if(msg == "restart") {
+        mqtt->publish("/state", "ESP32 wird neu gestartet...");
+        DEBUG_LOGLN("NEUSTART");
+        trigger_restart = 1;
+    } else if(msg == "learn") {
         for(unsigned int i = 0; i < msg.length(); i++) {
             if(!isDigit(msg[i])) { return; }
         }
@@ -149,27 +142,40 @@ void handleMqttInput(String topic, String msg) {
     }
 }
 
-void checkMqttInput() {
+void handle_mqtt() {
     while(!mqttMessages.empty()) {
         MQTTMessage msg = mqttMessages.front();
-        handleMqttInput(msg.topic, msg.message);
+        handle_mqtt_input(msg.topic, msg.message);
         DEBUG_LOGLN("Topic: " + msg.topic + " - Message: " + msg.message);
         mqttMessages.erase(mqttMessages.begin());
     }
 }
 
-void handle_mqtt() {
-    if(mqttMessages.empty()) return;
-    if(millis() < next_mqtt) return;
-    checkMqttInput();
-    next_mqtt += millis() + 10;
+void handle_heartbeat() {
+    if(seconds < next_heartbeat) return;
+    mqtt->publish("/heartbeat", "alive");
+    next_heartbeat = seconds + 30;
+}
+
+void handle_restart() {
+    if(trigger_restart == 0) return;
+    trigger_restart++;
+    if(trigger_restart >= 10) { ESP.restart(); }
+}
+
+void handler() {
+    if(millis() < next_handle) return;
+    seconds = (int)(millis() / 1000);
+    handle_mqtt();
+    handle_heartbeat();
+    handle_restart();
+    check_receiver();
+    check_learning();
+    next_handle = millis() + 20;
 }
 
 void loop() {
     mqtt->loop();
-    seconds = (int)(millis() / 1000);
-    heartbeat();
-    handle_mqtt();
-    check_receiver();
-    check_learning();
+    handler();
+    delay(4);
 }
