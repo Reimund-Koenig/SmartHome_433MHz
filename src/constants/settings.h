@@ -1,6 +1,10 @@
 
 // Change this names to your need
 #define NAME "SmartHomeRF"
+#define FILENAME_VERSION "SmartHomeRF_v1.0.0.bin"
+#define HTTP_VERSION "rf_current_version.info"
+#define HTTP_SERVER_URL "http://reimund-koenig.de/data/smarthome/"
+#define CURRENT_VERSION_FS "rf_current_version.txt" // do not change
 
 // Used Pins
 #define REICEIVER_DATA 2     // D4

@@ -1,7 +1,9 @@
 
 // #define DEBUG
-#include "src/logger.h"
-#include "src/mqttconnector.h"
+#include "src/common/filesystem.h"
+#include "src/common/fota.h"
+#include "src/common/logger.h"
+#include "src/common/mqttconnector.h"
 #include <RCSwitch.h>
 
 #ifdef DEBUG
@@ -10,7 +12,6 @@ bool serial_enabled = true;
 bool serial_enabled = false;
 #endif
 
-// init 433MHz lib
 RCSwitch receiver = RCSwitch();
 RCSwitch transmitter = RCSwitch();
 uint32_t seconds;
@@ -22,6 +23,8 @@ unsigned long next_receiver;
 WiFiClient espClient;
 PubSubClient client(espClient);
 MQTTConnector *mqtt;
+ControllerFileSystem *cfs;
+ControllerFota *controller_updater;
 
 struct Codes {
     unsigned long code;
@@ -32,13 +35,29 @@ Codes *codes = NULL;
 int numOfCodes = 0;
 
 void mqtt_callback(char *topic, byte *payload, unsigned int length) {
-    String message = "";
-    for(int i = 0; i < length; i++) {
-        char tmp = (char)payload[i];
-        if(!isDigit(tmp)) { return; } // No integer
-        message += tmp;
+    String message;
+    for(unsigned int i = 0; i < length; i++) {
+        message += (char)payload[i];
     }
-    learning_code = strtoul(message.c_str(), NULL, 10);
+    if(strcmp(topic, "home/433/command") == 0) {
+        // Payload in einen String umwandeln
+        // Payload auf "restart" prüfen
+        if(message == "restart") {
+            mqtt->publish(
+                "home/433/state",
+                "Neustart-Befehl erhalten. ESP32 wird neu gestartet...");
+            delay(1000); // kurze Verzögerung, damit die Nachricht noch gesendet
+                         // werden kann
+            ESP.restart(); // Neustart des ESP32
+        }
+    } else if(strcmp(topic, "home/433") == 0) {
+        for(int i = 0; i < length; i++) {
+            char tmp = (char)payload[i];
+            if(!isDigit(tmp)) { return; } // No integer
+            message += tmp;
+        }
+        learning_code = strtoul(message.c_str(), NULL, 10);
+    }
 }
 
 void setup() {
@@ -48,8 +67,10 @@ void setup() {
             delay(1);
         }
     }
-    next_heartbeat = 0;
     mqtt = new MQTTConnector(mqtt_callback);
+    cfs = new ControllerFileSystem();
+    controller_updater = new ControllerFota(cfs, mqtt);
+    next_heartbeat = 0;
     next_mqtt = 0;
     next_receiver = 0;
     pinMode(REICEIVER_DATA, INPUT);
