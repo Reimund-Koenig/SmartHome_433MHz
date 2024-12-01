@@ -1,7 +1,7 @@
 
 // Change this names to your need
 #define NAME "SmartHomeRF"
-#define FILENAME_VERSION "SmartHomeRF_v1.0.4.bin"
+#define FILENAME_VERSION "SmartHomeRF_v1.1.0.bin"
 #define HTTP_VERSION "rf_current_version.info"
 #define HTTP_SERVER_URL "http://reimund-koenig.de/data/smarthome/"
 #define CURRENT_VERSION_FS "rf_current_version.txt" // do not change
@@ -20,3 +20,4 @@
 // MQTT Server configuration
 #define MQTT_SERVER_IP_ADDRESS "192.168.178.153"
 #define MQTT_SERVER_PORT 1883
+#define DEFAULT_MQTT_CHANNEL String("home/433")
