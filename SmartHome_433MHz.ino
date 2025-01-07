@@ -16,8 +16,9 @@ RCSwitch transmitter = RCSwitch();
 unsigned long seconds;
 unsigned long next_heartbeat;
 unsigned long learning_code;
-unsigned long next_receiver;
+unsigned long next_accept_same_code;
 int trigger_restart;
+unsigned long last_code;
 
 WiFiClient espClient;
 PubSubClient client(espClient);
@@ -31,56 +32,90 @@ struct MQTTMessage {
 };
 
 std::vector<MQTTMessage> mqttMessages;
+std::vector<String> subscriptions = {DEFAULT_MQTT_CHANNEL + "/learn"};
 
 int numOfCodes = 0;
 void setup() {
     if(serial_enabled) {
         Serial.begin(19200);
-        while(!Serial) {
-            delay(1);
+        unsigned long start = millis();
+        while(!Serial && millis() - start < 5000) {
+            delay(5);
         }
-        delay(1000);
+        DEBUG_LOGLN("Start Serial and Watchdog");
     }
-    mqtt = new MQTTConnector(mqtt_callback, DEFAULT_MQTT_CHANNEL);
+
+    delay(1000);
+    DEBUG_LOGLN("Start ControllerFileSystem");
+    DEBUG_LOGLN("Start MQTT");
+    mqtt =
+        new MQTTConnector(mqtt_callback, DEFAULT_MQTT_CHANNEL, subscriptions);
+    if(!mqtt) {
+        DEBUG_LOGLN("MQTTConnector couldn't be initialized!");
+        while(true) {}
+    }
     cfs = new ControllerFileSystem();
+    if(!cfs) {
+        DEBUG_LOGLN("ControllerFileSystem couldn't be initialized!");
+        while(true) {}
+    }
+
     controller_updater = new ControllerFota(cfs, mqtt);
+    DEBUG_LOGLN("Start controller_updater");
+    if(!controller_updater) {
+        DEBUG_LOGLN("controller_updater couldn't be initialized!");
+        while(true) {}
+    }
+    DEBUG_LOGLN("Start Pins");
+    last_code = 0;
     next_heartbeat = 0;
-    next_receiver = 0;
+    next_accept_same_code = 0;
     trigger_restart = 0;
     pinMode(REICEIVER_DATA, INPUT);
     pinMode(TRANSMITTER_DATA, OUTPUT);
     pinMode(TRANSMITTER_POWER, OUTPUT);
     pinMode(RECEIVER_POWER, OUTPUT);
     pinMode(REICEIVER_SLEEP, OUTPUT);
-    receiver.enableReceive(REICEIVER_DATA);
-    transmitter.enableTransmit(TRANSMITTER_DATA);
+    pinMode(TRANSMITTER_GND, OUTPUT);
+    digitalWrite(TRANSMITTER_GND, LOW);
     digitalWrite(TRANSMITTER_POWER, HIGH);
     digitalWrite(RECEIVER_POWER, HIGH);
     digitalWrite(REICEIVER_SLEEP, HIGH);
+    delay(250);
+    receiver.enableReceive(REICEIVER_DATA);
+    transmitter.enableTransmit(TRANSMITTER_DATA);
     DEBUG_LOGLN("Sniffer and sender for RF 433MHz");
 }
 
 void check_learning() {
     if(learning_code == 0) { return; }
+    mqtt->publish("/state", "Anlernen....");
     DEBUG_LOG("Start Learning Mode with Code: ");
     DEBUG_LOGLN(learning_code);
-    for(int k = 0; k < 100; k++) {
+    for(int k = 0; k < 20; k++) {
         DEBUG_LOGLN("Send Learning Code");
         transmitter.send(learning_code, 24);
-        delay(2);
+        delay(4);
     }
     DEBUG_LOG("Finished Learning Mode with Code: ");
     learning_code = 0;
+    mqtt->publish("/state", "Anlernen beendet");
 }
 
 void check_receiver() {
-    if(millis() < next_receiver) return;
+    if(millis() > next_accept_same_code) {
+        next_accept_same_code = millis() + 5000;
+        last_code = 0;
+    }
     if(!receiver.available()) { return; }
-    next_receiver = millis() + 1000;
     unsigned long tmp_code = receiver.getReceivedValue();
-    unsigned int tmp_bitLenght = receiver.getReceivedBitlength();
-    unsigned int protocol = receiver.getReceivedProtocol();
-    mqtt->publish(tmp_code);
+    if(tmp_code != last_code || last_code == 0) {
+        // unsigned int tmp_bitLenght = receiver.getReceivedBitlength();
+        // unsigned int protocol = receiver.getReceivedProtocol();
+        DEBUG_LOGLN(tmp_code);
+        mqtt->publish(tmp_code);
+        last_code = tmp_code;
+    }
     receiver.resetAvailable();
 }
 
@@ -102,18 +137,29 @@ void handle_mqtt() {
     }
 }
 
-void handle_mqtt_input(String topic, String msg) {
+void handle_mqtt_input_commands(String topic, String msg) {
     if(topic != "home/433/command") { return; }
     if(msg == "restart") {
         mqtt->publish("/state", "ESP32 wird neu gestartet...");
         DEBUG_LOGLN("NEUSTART");
         trigger_restart = 1;
-    } else if(msg == "learn") {
-        for(unsigned int i = 0; i < msg.length(); i++) {
-            if(!isDigit(msg[i])) { return; }
-        }
-        learning_code = strtoul(msg.c_str(), NULL, 10);
     }
+}
+void handle_mqtt_input_learn(String topic, String msg) {
+    if(topic != "home/433/learn") { return; }
+    mqtt->publish("/state", "Neuer Code wird gelernt");
+    for(unsigned int i = 0; i < msg.length(); i++) {
+        if(!isDigit(msg[i])) {
+            mqtt->publish("/state", "    Fehler im Code!");
+            return;
+        }
+    }
+    learning_code = strtoul(msg.c_str(), NULL, 10);
+}
+
+void handle_mqtt_input(String topic, String msg) {
+    handle_mqtt_input_commands(topic, msg);
+    handle_mqtt_input_learn(topic, msg);
 }
 
 void handle_heartbeat() {
@@ -138,6 +184,7 @@ void handler() {
 }
 
 void loop() {
+    // ESP.wdtFeed();
     mqtt->loop();
     handler();
     delay(2);
