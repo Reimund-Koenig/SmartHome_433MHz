@@ -2,6 +2,11 @@
 
 433MHz Sender and Receiver with Wemos D1 Mini to control my smart home
 
+## Libs Needed
+
+* RC-Switch by sui77 (v2.6.4)
+* PubSubClient by Neal O'Leary (v2.8)
+
 ## How To Update over the Air
 
 1. Open ./src/constants/settings.h and rename version to your need
