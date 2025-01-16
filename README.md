@@ -7,6 +7,13 @@
 * RC-Switch by sui77 (v2.6.4)
 * PubSubClient by Neal O'Leary (v2.8)
 
+## Add needed compiler flags
+
+* Open Windows: C:\Users\<user>\AppData\Local\Arduino15\packages\esp8266\hardware\esp8266\<version>\platform.txt
+  * On Mac/Linux: ~/Library/Arduino15/packages/esp8266/hardware/esp8266/<version>/platform.txt
+* Search for "compiler.cpp.flags="
+* Add "-fexceptions" at the end
+
 ## How To Update over the Air
 
 1. Open ./src/constants/settings.h and rename version to your need
