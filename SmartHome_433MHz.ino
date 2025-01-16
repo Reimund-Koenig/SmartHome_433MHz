@@ -30,6 +30,8 @@ struct MQTTMessage {
     String topic;
     String message;
 };
+const size_t MAX_MQTT_MESSAGES = 8;
+const unsigned int MAX_PAYLOAD_LENGTH = 256;
 
 std::vector<MQTTMessage> mqttMessages;
 std::vector<String> subscriptions = {DEFAULT_MQTT_CHANNEL + "/learn"};
@@ -46,23 +48,25 @@ void setup() {
     }
 
     delay(1000);
-    DEBUG_LOGLN("Start ControllerFileSystem");
-    DEBUG_LOGLN("Start MQTT");
-    mqtt =
-        new MQTTConnector(mqtt_callback, DEFAULT_MQTT_CHANNEL, subscriptions);
-    if(!mqtt) {
+    try {
+        mqtt = new MQTTConnector(mqtt_callback, DEFAULT_MQTT_CHANNEL,
+                                 subscriptions);
+        DEBUG_LOGLN("MQTTConnector initialized!");
+    } catch(const std::bad_alloc &e) {
         DEBUG_LOGLN("MQTTConnector couldn't be initialized!");
         while(true) {}
     }
-    cfs = new ControllerFileSystem();
-    if(!cfs) {
+    try {
+        cfs = new ControllerFileSystem();
+        DEBUG_LOGLN("ControllerFileSystem initialized!");
+    } catch(const std::bad_alloc &e) {
         DEBUG_LOGLN("ControllerFileSystem couldn't be initialized!");
         while(true) {}
     }
-
-    controller_updater = new ControllerFota(cfs, mqtt);
-    DEBUG_LOGLN("Start controller_updater");
-    if(!controller_updater) {
+    try {
+        controller_updater = new ControllerFota(cfs, mqtt);
+        DEBUG_LOGLN("Start controller_updater");
+    } catch(const std::bad_alloc &e) {
         DEBUG_LOGLN("controller_updater couldn't be initialized!");
         while(true) {}
     }
@@ -122,10 +126,14 @@ void check_receiver() {
 void mqtt_callback(char *topic, byte *payload, unsigned int length) {
     String topicStr = String(topic);
     String messageStr;
+    if(length > MAX_PAYLOAD_LENGTH) { return; }
     for(unsigned int i = 0; i < length; i++) {
         messageStr += (char)payload[i];
     }
     mqttMessages.push_back({topicStr, messageStr});
+    if(mqttMessages.size() >= MAX_MQTT_MESSAGES) {
+        mqttMessages.erase(mqttMessages.begin());
+    }
 }
 
 void handle_mqtt() {
@@ -145,6 +153,7 @@ void handle_mqtt_input_commands(String topic, String msg) {
         trigger_restart = 1;
     }
 }
+
 void handle_mqtt_input_learn(String topic, String msg) {
     if(topic != "home/433/learn") { return; }
     mqtt->publish("/state", "Neuer Code wird gelernt");
