@@ -2,6 +2,7 @@ IndentWidth: 4
 SpaceBeforeParens: Never
 AllowShortBlocksOnASingleLine: true
 AllowShortIfStatementsOnASingleLine: true
+ColumnLimit: 100
 
 BraceWrapping:
   AfterClass: false
