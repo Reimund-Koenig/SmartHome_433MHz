@@ -67,11 +67,9 @@ static void hard_restart_now(const char *reason) {
     }
     if(mqtt != nullptr) {
         mqtt->publish("/state", (String("NEUSTART: ") + reason).c_str());
-        mqtt->loop();
     }
-    for (int i = 0; i < 10; i++) {
-        delay(50); // gives WiFi stack time
-        yield(); // gives WiFi stack time
+    for(int i = 0; i < 10; i++) {
+        delay(50);
     }
     ESP.restart();
     // Fallback (should never reach)
@@ -105,8 +103,9 @@ void setup() {
     }
 
     delay(500);
+    mqttMessages.reserve(MAX_MQTT_MESSAGES); // Avoid repeated reallocations / fragmentation
     mqtt = new MQTTConnector(mqtt_callback, DEFAULT_MQTT_CHANNEL,
-                            subscriptions, hard_restart_now);
+                             subscriptions, hard_restart_now);
     if(!mqtt) {
         hard_restart_now("MQTTConnector couldn't be initialized!");
     }
@@ -152,8 +151,7 @@ void check_learning() {
     DEBUG_LOGLN(learning_code);
     for(int k = 0; k < 20; k++) {
         transmitter.send(learning_code, 24);
-        delay(4);
-        yield();
+        delay(4); 
     }
     DEBUG_LOG("Finished Learning Mode with Code: ");
     DEBUG_LOGLN(learning_code);
@@ -256,7 +254,7 @@ void handler() {
 }
 
 void loop() {
-    mqtt->loop();
+    if(mqtt) mqtt->loop(); 
     handler();
     delay(2);
 }
